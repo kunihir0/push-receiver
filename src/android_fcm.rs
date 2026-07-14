@@ -179,7 +179,8 @@ impl AndroidFcm {
         let res = client
             .post(REGISTER_URL)
             .header("Authorization", auth_header)
-            .form(&form)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(serde_urlencoded::to_string(&form).unwrap())
             .send()
             .await?
             .text()
@@ -214,10 +215,10 @@ impl AndroidFcm {
     pub fn generate_firebase_fid() -> String {
         use base64::Engine;
         use base64::engine::general_purpose::STANDARD_NO_PAD;
-        use rand::RngCore;
+        use rand::RngExt;
 
         let mut buf = [0u8; 17];
-        rand::rngs::OsRng.fill_bytes(&mut buf);
+        rand::rng().fill(&mut buf);
 
         // replace the first 4 bits with the constant FID header of 0b0111
         buf[0] = 0b0111_0000 | (buf[0] & 0b0000_1111);

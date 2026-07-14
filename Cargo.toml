@@ -2,6 +2,14 @@
 name = "push-receiver"
 version = "0.1.0"
 edition = "2024"
+description = "FCM push receiver for Rust+"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/nodirust/nodirust"
+keywords = ["fcm", "push", "receiver"]
+categories = ["network-programming"]
+
+[lints]
+workspace = true
 
 [dependencies]
 tokio.workspace = true
@@ -23,6 +31,7 @@ bytes.workspace = true
 serde_json.workspace = true
 futures-util.workspace = true
 sha2.workspace = true
+serde_urlencoded = "0.7.1"
 
 [build-dependencies]
 prost-build = "0.14.3"

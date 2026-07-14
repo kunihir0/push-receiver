@@ -3,8 +3,8 @@ use crate::error::{Error, Result};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 use p256::SecretKey;
-use p256::elliptic_curve::sec1::ToEncodedPoint;
-use rand::rngs::OsRng;
+use p256::elliptic_curve::sec1::ToSec1Point;
+use rand::RngExt;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -66,10 +66,14 @@ pub async fn register(client: &Client, sender_id: &str) -> Result<FcmRegistratio
             checkin_res.android_id, checkin_res.security_token
         );
 
+        let body_str = serde_urlencoded::to_string(form)
+            .map_err(|e| Error::Registration(format!("Failed to encode form: {e}")))?;
+
         let res = client
             .post(REGISTER_URL)
             .header("Authorization", auth_header)
-            .form(&form)
+            .header("Content-Type", "application/x-www-form-urlencoded")
+            .body(body_str)
             .send()
             .await?
             .text()
@@ -95,15 +99,16 @@ pub async fn register(client: &Client, sender_id: &str) -> Result<FcmRegistratio
         break token;
     };
 
-    let secret = SecretKey::random(&mut OsRng);
+    #[allow(deprecated)] // SecretKey::random is deprecated but used for standard random generation here
+    let secret = SecretKey::random(&mut rand::rng());
     let public = secret.public_key();
 
     let mut auth_secret = [0u8; 16];
-    rand::RngCore::fill_bytes(&mut OsRng, &mut auth_secret);
+    rand::rng().fill(&mut auth_secret);
 
     let keys = Keys {
         private_key: URL_SAFE_NO_PAD.encode(secret.to_bytes()),
-        public_key: URL_SAFE_NO_PAD.encode(public.to_encoded_point(false).as_bytes()),
+        public_key: URL_SAFE_NO_PAD.encode(public.to_sec1_point(false).as_bytes()),
         auth_secret: URL_SAFE_NO_PAD.encode(auth_secret),
     };
 
@@ -114,9 +119,13 @@ pub async fn register(client: &Client, sender_id: &str) -> Result<FcmRegistratio
         ("encryption_auth", &keys.auth_secret),
     ];
 
+    let body_str2 = serde_urlencoded::to_string(form)
+        .map_err(|e| Error::Registration(format!("Failed to encode form: {e}")))?;
+
     let fcm_res_str = client
         .post(FCM_SUBSCRIBE)
-        .form(&form)
+        .header("Content-Type", "application/x-www-form-urlencoded")
+        .body(body_str2)
         .send()
         .await?
         .error_for_status()?

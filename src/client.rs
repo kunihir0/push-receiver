@@ -11,6 +11,7 @@ pub struct Notification {
     pub decrypted: Vec<u8>,
     pub persistent_id: Option<String>,
     pub app_data: Vec<AppData>,
+    pub sent: Option<i64>,
 }
 
 /// A builder for constructing a `PushReceiver`.
@@ -105,6 +106,7 @@ impl PushReceiverBuilder {
                             decrypted: raw_data,
                             persistent_id: msg.persistent_id,
                             app_data: msg.app_data,
+                            sent: msg.sent,
                         })
                         .await;
                     continue;
@@ -127,6 +129,7 @@ impl PushReceiverBuilder {
                                     decrypted,
                                     persistent_id: msg.persistent_id,
                                     app_data: msg.app_data,
+                                    sent: msg.sent,
                                 })
                                 .await
                                 .is_err()
@@ -217,6 +220,7 @@ impl PushReceiverBuilder {
                         decrypted,
                         persistent_id: msg.persistent_id,
                         app_data: msg.app_data,
+                        sent: msg.sent,
                     })
                     .await;
             }

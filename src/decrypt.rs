@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use aes_gcm::{
-    Aes128Gcm, Key, Nonce,
+    Aes128Gcm,
     aead::{Aead, KeyInit},
 };
 use hkdf::Hkdf;
@@ -63,8 +63,8 @@ pub fn decrypt(
     hkdf.expand(b"Content-Encoding: nonce\0", &mut nonce_bytes)
         .map_err(|e| Error::Crypto(format!("HKDF nonce expand failed: {e}")))?;
 
-    let cipher = Aes128Gcm::new(Key::<Aes128Gcm>::from_slice(&cek));
-    let nonce = Nonce::from_slice(&nonce_bytes);
+    let cipher = Aes128Gcm::new(cek.as_slice().try_into().unwrap());
+    let nonce = nonce_bytes.as_slice().try_into().unwrap();
 
     let decrypted = cipher
         .decrypt(nonce, raw_data)
