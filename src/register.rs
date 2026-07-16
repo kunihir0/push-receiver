@@ -24,21 +24,57 @@ const SERVER_KEY: &[u8] = &[
     0x6e,
 ];
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Web Push key material generated for a browser-style FCM registration.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct Keys {
+    /// Base64url-encoded ECDH private key.
     pub private_key: String,
+    /// Base64url-encoded ECDH public key.
     pub public_key: String,
+    /// Base64url-encoded authentication secret.
     pub auth_secret: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+impl std::fmt::Debug for Keys {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("Keys")
+            .field("private_key", &"<redacted>")
+            .field("public_key", &"<redacted>")
+            .field("auth_secret", &"<redacted>")
+            .finish()
+    }
+}
+
+/// Credentials returned by the browser-style FCM registration flow.
+#[derive(Clone, Serialize, Deserialize)]
 pub struct FcmRegistration {
+    /// FCM registration token.
     pub token: String,
+    /// Android check-in identifier.
     pub android_id: u64,
+    /// Android check-in security token.
     pub security_token: u64,
+    /// Registration subtype identifier.
     pub app_id: String,
+    /// Web Push encryption keys.
     pub keys: Keys,
+    /// Raw FCM subscription response retained for compatibility.
     pub fcm: serde_json::Value,
+}
+
+impl std::fmt::Debug for FcmRegistration {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter
+            .debug_struct("FcmRegistration")
+            .field("token", &"<redacted>")
+            .field("android_id", &self.android_id)
+            .field("security_token", &"<redacted>")
+            .field("app_id", &"<redacted>")
+            .field("keys", &self.keys)
+            .field("fcm", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Performs GCM/FCM registration.
