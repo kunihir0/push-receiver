@@ -172,9 +172,23 @@ fn spawn_payload_forwarder(
     tasks.spawn(async move {
         while let Some(message) = messages.recv().await {
             if is_duplicate(&message, &persistent_ids).await {
+                tracing::debug!(
+                    persistent_id_present = message.persistent_id.is_some(),
+                    "Ignoring duplicate MCS message"
+                );
                 continue;
             }
             let Some(payload) = decode_payload(&message, &payload_mode) else {
+                let app_data_keys: Vec<_> = message
+                    .app_data
+                    .iter()
+                    .map(|entry| entry.key.as_str())
+                    .collect();
+                tracing::warn!(
+                    raw_data_present = message.raw_data.is_some(),
+                    app_data_keys = ?app_data_keys,
+                    "MCS message had no decodable payload"
+                );
                 continue;
             };
             let notification = Notification {
@@ -207,10 +221,14 @@ async fn is_duplicate(
 }
 
 fn decode_payload(message: &DataMessageStanza, mode: &PayloadMode) -> Option<Vec<u8>> {
-    let raw_data = message.raw_data.as_ref()?;
     match mode {
-        PayloadMode::Raw => Some(raw_data.clone()),
-        PayloadMode::Decrypt(keys) => decode_encrypted_payload(message, raw_data, keys),
+        // Android FCM data messages can carry their complete payload in app_data.
+        // Forward an empty byte buffer so callers can still inspect that metadata.
+        PayloadMode::Raw => Some(message.raw_data.clone().unwrap_or_default()),
+        PayloadMode::Decrypt(keys) => {
+            let raw_data = message.raw_data.as_ref()?;
+            decode_encrypted_payload(message, raw_data, keys)
+        }
     }
 }
 
@@ -293,5 +311,29 @@ impl PushReceiver {
 impl Drop for PushReceiver {
     fn drop(&mut self) {
         self.tasks.abort_all();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{PayloadMode, decode_payload};
+    use crate::proto::{AppData, DataMessageStanza};
+
+    #[test]
+    fn forwards_app_data_only_android_message() {
+        let message = DataMessageStanza {
+            from: "sender".to_string(),
+            category: "package".to_string(),
+            app_data: vec![AppData {
+                key: "body".to_string(),
+                value: r#"{"type":"server"}"#.to_string(),
+            }],
+            ..DataMessageStanza::default()
+        };
+
+        assert_eq!(
+            decode_payload(&message, &PayloadMode::Raw),
+            Some(Vec::new())
+        );
     }
 }

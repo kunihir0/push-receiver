@@ -74,6 +74,19 @@ pub async fn connect(
                 tracing::debug!("MCS heartbeat acknowledged");
             }
             McsMessage::DataMessageStanza(data) => {
+                let app_data_keys: Vec<_> = data
+                    .app_data
+                    .iter()
+                    .map(|entry| entry.key.as_str())
+                    .collect();
+                tracing::debug!(
+                    category = %data.category,
+                    raw_data_bytes = data.raw_data.as_ref().map_or(0, Vec::len),
+                    persistent_id_present = data.persistent_id.is_some(),
+                    sent = data.sent,
+                    app_data_keys = ?app_data_keys,
+                    "Received MCS data message"
+                );
                 let immediate_ack = data.immediate_ack.unwrap_or(false);
                 let tracks_delivery = data.persistent_id.is_some();
                 sender.send(data).await.map_err(|_| {
