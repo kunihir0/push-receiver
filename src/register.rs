@@ -99,7 +99,8 @@ pub async fn register(client: &Client, sender_id: &str) -> Result<FcmRegistratio
         break token;
     };
 
-    #[allow(deprecated)] // SecretKey::random is deprecated but used for standard random generation here
+    #[allow(deprecated)]
+    // SecretKey::random is deprecated but used for standard random generation here
     let secret = SecretKey::random(&mut rand::rng());
     let public = secret.public_key();
 

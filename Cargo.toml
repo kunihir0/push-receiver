@@ -1,6 +1,6 @@
 [package]
 name = "push-receiver"
-version = "0.1.0"
+version = "0.2.3"
 edition = "2024"
 description = "FCM push receiver for Rust+"
 license = "MIT OR Apache-2.0"
